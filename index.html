@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Boda Vivi & Miguel</title>
+    <style>
+        :root {
+            --sand: #f4e2d7;
+            --sea: #027a9f;
+            --sea-deep: #014f66
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            background: linear-gradient(#e8f6fb, #f7fbff 40%, var(--sand) 40%);
+            color: #123
+        }
+
+        header {
+            padding: 36px 18px;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent)
+        }
+
+        header h1 {
+            margin: 0;
+            color: var(--sea-deep)
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 22px auto;
+            padding: 0 18px 80px
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 12px
+        }
+
+        .btn {
+            background: var(--sea);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 0;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px
+        }
+
+        .item {
+            border-radius: 12px;
+            overflow: hidden;
+            display: block;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+            background: #fff
+        }
+
+        .item img {
+            width: 100%;
+            height: 170px;
+            object-fit: cover;
+            display: block;
+            transition: transform .25s
+        }
+
+        .item:hover img {
+            transform: scale(1.03)
+        }
+
+        footer {
+            text-align: center;
+            color: #666;
+            padding: 26px 18px
+        }
+
+        .muted {
+            color: #556;
+            font-size: 0.95rem
+        }
+
+        @media(max-width:600px) {
+            .item img {
+                height: 130px
+            }
+        }
+
+        /* Lightbox */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.78);
+            z-index: 9999;
+            padding: 18px
+        }
+
+        .lightbox.open {
+            display: flex
+        }
+
+        .lb-inner {
+            max-width: 1100px;
+            width: 100%;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px
+        }
+
+        .lb-img {
+            max-height: 78vh;
+            width: auto;
+            max-width: 100%;
+            border-radius: 6px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6)
+        }
+
+        .lb-caption {
+            color: #fff;
+            font-size: 15px;
+            text-align: center;
+            min-height: 1.1em
+        }
+
+        .lb-row {
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        .lb-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer
+        }
+
+        .close-btn {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            background: transparent;
+            border: 0;
+            color: #fff;
+            font-size: 26px;
+            cursor: pointer
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 34px;
+            color: #fff;
+            background: transparent;
+            border: 0;
+            cursor: pointer
+        }
+
+        .nav-left {
+            left: 8px
+        }
+
+        .nav-right {
+            right: 8px
+        }
+
+        /* small screens */
+        @media(max-width:600px) {
+            .lb-img {
+                max-height: 60vh
+            }
+
+            .nav-btn {
+                font-size: 28px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="container">
+        <h1>Boda Vivi &amp; Miguel</h1>
+        <p class="muted">Haz clic en una foto para verla ampliada — desde ahí puedes descargarla individualmente.</p>
+    </header>
+
+    <main class="container">
+        <div class="controls">
+            <a id="zipLink" class="btn" href="photos.zip" download>📥 Descargar todas las fotos (.zip)</a>
+        </div>
+
+        <div id="gallery" class="grid" aria-live="polite">
+            <div id="status" class="muted" style="grid-column:1/-1;text-align:center">Cargando galería…</div>
+        </div>
+    </main>
+
+    <footer>💙 Vivi &amp; Miguel — 18 Julio 2025 💛</footer>
+
+    <!-- Lightbox markup -->
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+        <button class="close-btn" id="lbClose" aria-label="Cerrar">✕</button>
+        <button class="nav-btn nav-left" id="lbPrev" aria-label="Anterior">‹</button>
+        <div class="lb-inner" role="dialog" aria-modal="true">
+            <img id="lbImg" class="lb-img" src="" alt="">
+            <div class="lb-caption" id="lbCaption"></div>
+            <div class="lb-row">
+                <a id="lbDownload" class="lb-btn" href="#" download>⬇ Descargar foto</a>
+                <button id="lbOpenInNew" class="lb-btn">Abrir en pestaña nueva</button>
+            </div>
+        </div>
+        <button class="nav-btn nav-right" id="lbNext" aria-label="Siguiente">›</button>
+    </div>
+
+    <script>
+        (async function () {
+            const gallery = document.getElementById('gallery');
+            const status = document.getElementById('status');
+            const zipLink = document.getElementById('zipLink');
+
+            // lightbox elements
+            const lightbox = document.getElementById('lightbox');
+            const lbImg = document.getElementById('lbImg');
+            const lbCaption = document.getElementById('lbCaption');
+            const lbClose = document.getElementById('lbClose');
+            const lbPrev = document.getElementById('lbPrev');
+            const lbNext = document.getElementById('lbNext');
+            const lbDownload = document.getElementById('lbDownload');
+            const lbOpenInNew = document.getElementById('lbOpenInNew');
+
+            // load manifest.json
+            let manifest = [];
+            try {
+                const r = await fetch('manifest.json', { cache: 'no-store' });
+                if (!r.ok) throw new Error('manifest.json no encontrado');
+                manifest = await r.json();
+            } catch (e) {
+                status.textContent = 'No se ha encontrado manifest.json o está inválido. Comprueba que el archivo existe en la misma carpeta que index.html.';
+                console.warn(e);
+                return;
+            }
+            if (!manifest.length) {
+                status.textContent = 'manifest.json está vacío. Ejecuta el script para generarlo.';
+                return;
+            }
+
+            // candidate prefixes to try when locating files (keeps it flexible)
+            const prefixes = ['', 'images/', 'site_assets/images/', 'imagenes/', 'images/full/', 'images/thumbs/', 'site_assets/imagenes/'];
+
+            async function exists(path) {
+                try {
+                    const r = await fetch(path, { method: 'HEAD' });
+                    if (r.ok) return true;
+                    // some static servers don't support HEAD -> try GET but only check status
+                    const g = await fetch(path, { method: 'GET' });
+                    return g.ok;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            // returns first path that exists from candidate list
+            async function findFirst(candidates) {
+                for (const p of candidates) {
+                    if (await exists(p)) return p;
+                }
+                return null;
+            }
+
+            // build candidates for a given original path
+            function buildCandidates(original) {
+                const name = original.split('/').pop();
+                const out = [];
+                for (const pref of prefixes) {
+                    // try original (with pref prepended)
+                    out.push(pref + original.replace(/^\/+/, ''));
+                }
+                // try basename in common folders
+                for (const pref of prefixes) {
+                    out.push(pref + 'images/full/' + name);
+                    out.push(pref + 'images/thumbs/' + name);
+                    out.push(pref + 'imagenes/full/' + name);
+                    out.push(pref + 'imagenes/thumbs/' + name);
+                    out.push(pref + 'full/' + name);
+                    out.push(pref + 'thumbs/' + name);
+                    out.push(pref + name);
+                }
+                // unique
+                return Array.from(new Set(out));
+            }
+
+            // build gallery
+            gallery.innerHTML = '';
+            for (let i = 0; i < manifest.length; i++) {
+                const entry = manifest[i];
+                const fileOrig = entry.file || entry.filename || entry.src || '';
+                const thumbOrig = entry.thumb || entry.preview || fileOrig;
+
+                const thumbCandidates = buildCandidates(thumbOrig);
+                const fileCandidates = buildCandidates(fileOrig);
+
+                // locate thumb and file (thumb preferable)
+                const [foundThumb, foundFile] = await Promise.all([findFirst(thumbCandidates), findFirst(fileCandidates)]);
+
+                if (!foundThumb && !foundFile) {
+                    console.warn('No encontrado:', entry);
+                    continue;
+                }
+                // prefer thumb for src, but if no thumb use file
+                const imgSrc = foundThumb || foundFile;
+                const linkHref = foundFile || foundThumb;
+
+                // create thumbnail element
+                const a = document.createElement('a');
+                a.className = 'item';
+                a.href = linkHref || '#';
+                a.dataset.index = i;
+                // prevent automatic download; clicking opens lightbox instead
+                a.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    openAtIndex(parseInt(this.dataset.index, 10));
+                });
+
+                const img = document.createElement('img');
+                img.src = imgSrc;
+                img.alt = entry.caption || '';
+                a.appendChild(img);
+                gallery.appendChild(a);
+            }
+
+            if (gallery.children.length === 0) {
+                status.textContent = 'No se encontraron imágenes según manifest.json. Revisa rutas o muestra el manifest aquí.';
+                return;
+            } else {
+                status.remove();
+            }
+
+            // lightbox navigation
+            let curIndex = 0;
+            function openAtIndex(i) {
+                if (i < 0) i = manifest.length - 1;
+                if (i >= manifest.length) i = 0;
+                curIndex = i;
+
+                const entry = manifest[curIndex];
+                // find the best file path again (may be redundant but ensures correct path)
+                findFirst(buildCandidates(entry.file || entry.filename || entry.src || '')).then((path) => {
+                    const filePath = path || (entry.file || entry.filename || entry.src || '');
+                    lbImg.src = filePath;
+                    lbDownload.href = filePath;
+                    // give a download filename that's friendly
+                    const base = (filePath.split('/').pop() || 'photo');
+                    lbDownload.setAttribute('download', base);
+                    lbOpenInNew.onclick = () => window.open(filePath, '_blank');
+                });
+
+                lbCaption.textContent = entry.caption || '';
+                lightbox.classList.add('open');
+                lightbox.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeLightbox() {
+                lightbox.classList.remove('open');
+                lightbox.setAttribute('aria-hidden', 'true');
+                lbImg.src = '';
+                document.body.style.overflow = '';
+            }
+
+            function prev() {
+                openAtIndex((curIndex - 1 + manifest.length) % manifest.length);
+            }
+            function next() {
+                openAtIndex((curIndex + 1) % manifest.length);
+            }
+
+            // controls
+            lbClose.addEventListener('click', closeLightbox);
+            lbPrev.addEventListener('click', prev);
+            lbNext.addEventListener('click', next);
+            // keyboard
+            document.addEventListener('keydown', function (e) {
+                if (!lightbox.classList.contains('open')) return;
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') prev();
+                if (e.key === 'ArrowRight') next();
+            });
+            // click outside to close
+            lightbox.addEventListener('click', function (ev) {
+                if (ev.target === lightbox) closeLightbox();
+            });
+
+            // hide zip link if not present
+            (async () => {
+                try {
+                    const r = await fetch('photos.zip', { method: 'HEAD' });
+                    if (!r.ok) zipLink.style.display = 'none';
+                } catch (e) {
+                    zipLink.style.display = 'none';
+                }
+            })();
+
+        })();
+    </script>
+</body>
+
+</html>
